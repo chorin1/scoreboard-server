@@ -12,7 +12,6 @@ type Database struct {
 
 var (
 	ErrNil = errors.New("no matching record found in redis database")
-	Ctx    = context.TODO()
 )
 
 func NewDatabase(address string) (*Database, error) {
@@ -21,10 +20,8 @@ func NewDatabase(address string) (*Database, error) {
 		Password: "",
 		DB:       0,
 	})
-	if err := client.Ping(Ctx).Err(); err != nil {
+	if err := client.Ping(context.Background()).Err(); err != nil {
 		return nil, err
 	}
-	return &Database{
-		Client: client,
-	}, nil
+	return &Database{client}, nil
 }

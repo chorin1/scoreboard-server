@@ -1,38 +1,36 @@
 package db
 
 import (
-	"fmt"
+	"context"
 	"github.com/go-redis/redis/v8"
 )
 
 type User struct {
 	Username string `json:"username" binding:"required"`
-	Score    uint64    `json:"score" binding:"required"`
-	Rank     uint64    `json:"rank"`
+	Score    uint64 `json:"score" binding:"required"`
+	Rank     int64  `json:"rank"`
 }
 
-func (db *Database) SaveUser(user *User) error {
+func (db *Database) SaveUser(ctx context.Context, user *User) (int64, error) {
 	member := &redis.Z{
 		Score:  float64(user.Score),
 		Member: user.Username,
 	}
 	pipe := db.Client.TxPipeline()
-	pipe.ZAdd(Ctx, "leaderboard", member)
-	rank := pipe.ZRank(Ctx, leaderboardKey, user.Username)
-	_, err := pipe.Exec(Ctx)
+	pipe.ZAdd(ctx, leaderboardKey, member)
+	rank := pipe.ZRevRank(ctx, leaderboardKey, user.Username)
+	_, err := pipe.Exec(ctx)
 	if err != nil {
-		return err
+		return 0, err
 	}
-	fmt.Println(rank.Val(), err)
-	user.Rank = uint64(int(rank.Val()))
-	return nil
+	return rank.Val() + 1, nil
 }
 
-func (db *Database) GetUser(username string) (*User, error) {
+func (db *Database) GetUser(ctx context.Context, username string) (*User, error) {
 	pipe := db.Client.TxPipeline()
-	score := pipe.ZScore(Ctx, leaderboardKey, username)
-	rank := pipe.ZRank(Ctx, leaderboardKey, username)
-	_, err := pipe.Exec(Ctx)
+	score := pipe.ZScore(ctx, leaderboardKey, username)
+	rank := pipe.ZRevRank(ctx, leaderboardKey, username)
+	_, err := pipe.Exec(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +39,7 @@ func (db *Database) GetUser(username string) (*User, error) {
 	}
 	return &User{
 		Username: username,
-		Score:    uint64(int(score.Val())),
-		Rank: uint64(int(rank.Val())),
+		Score:    uint64(score.Val()),
+		Rank:     rank.Val() + 1,
 	}, nil
 }
