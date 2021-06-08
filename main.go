@@ -12,7 +12,7 @@ import (
 
 var (
 	dbAddr = os.Getenv("REDIS_URL")
-	auth   = map[string]string{"raidar": "gaMe"}
+	auth   = map[string]string{os.Getenv("HTTP_USER"): os.Getenv("HTTP_PASS")}
 	port   = os.Getenv("HOST_PORT")
 )
 
@@ -32,6 +32,7 @@ func main() {
 	// app.Use(basicauth.New(basicauth.Config{Users: auth}))
 
 	app.Post("/newScore", handlers.NewScoreHandler(*database))
-	app.Get("/getScores", handlers.GetScoresHandler(*database))
+	app.Get("/getScores", handlers.GetScoresHandler(*database)) // can be cached later
+	app.Delete("/deleteAllScores", handlers.DeleteAllHandler(*database))
 	log.Fatal(app.Listen(":" + port))
 }

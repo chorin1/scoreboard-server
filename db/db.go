@@ -23,5 +23,11 @@ func NewDatabase(address string) (*Database, error) {
 	if err := client.Ping(context.Background()).Err(); err != nil {
 		return nil, err
 	}
-	return &Database{client}, nil
+
+	db := Database{client}
+
+	// remove bottom ranks in the background
+	go db.removeBottomRanks()
+
+	return &db, nil
 }

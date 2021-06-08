@@ -3,27 +3,51 @@ package handlers
 import (
 	"github.com/chorin1/scoreboard-server/db"
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 	"log"
-	"strconv"
 )
+
+const (
+	maxScore      = 999_999_999
+	minScore      = 3000
+	maxNameLength = 13
+)
+
+func validateUser(user *db.User) bool {
+	if len(user.Name) > maxNameLength {
+		return false
+	}
+	if user.Score > maxScore || user.Score < minScore {
+		return false
+	}
+	_, err := uuid.Parse(user.DeviceID)
+	if err != nil {
+		return false
+	}
+
+	return true
+}
 
 func NewScoreHandler(database db.Database) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		u := new(db.User)
-		if err := c.BodyParser(u); err != nil {
+		user := new(db.User)
+		if err := c.BodyParser(user); err != nil {
 			log.Println(err)
 			return fiber.ErrBadRequest
 		}
-		// TODO: check username length
-		// TODO: check score is above a certain number
-		// TODO: check that we're not overriting its
-		rank, err := database.SaveUser(c.Context(), u)
+		if !validateUser(user) {
+			return fiber.NewError(fiber.StatusBadRequest, "user is invalid")
+		}
+
+		// TODO: what to do when user already exist? allow overwrite?
+		err := database.SaveUser(c.Context(), user)
 		if err != nil {
 			log.Println(err)
 			return fiber.ErrInternalServerError
 		}
 
-		return c.SendString(strconv.FormatInt(rank, 10))
+		// enriched with rank
+		return c.JSON(user)
 	}
 }
 
@@ -38,6 +62,16 @@ func GetScoresHandler(database db.Database) fiber.Handler {
 		if err != nil {
 			log.Println(err)
 			return fiber.ErrInternalServerError
+		}
+		return nil
+	}
+}
+
+func DeleteAllHandler(database db.Database) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		err := database.DeleteAllUsers()
+		if err != nil {
+			return err
 		}
 		return nil
 	}
