@@ -11,10 +11,11 @@ const (
 	maxScore      = 999_999_999
 	minScore      = 3000
 	maxNameLength = 13
+	minNameLength = 3
 )
 
 func validateUser(user *db.User) bool {
-	if len(user.Name) > maxNameLength {
+	if len(user.Name) > maxNameLength || len(user.Name) < minNameLength {
 		return false
 	}
 	if user.Score > maxScore || user.Score < minScore {
@@ -39,7 +40,6 @@ func NewScoreHandler(database db.Database) fiber.Handler {
 			return fiber.NewError(fiber.StatusBadRequest, "user is invalid")
 		}
 
-		// TODO: what to do when user already exist? allow overwrite?
 		err := database.SaveUser(c.Context(), user)
 		if err != nil {
 			log.Println(err)

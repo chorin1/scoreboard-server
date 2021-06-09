@@ -6,8 +6,10 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/gofiber/fiber/v2/middleware/recover"
 	"log"
 	"os"
+	"time"
 )
 
 var (
@@ -21,12 +23,16 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to connect to redis: %v", err)
 	}
-	app := fiber.New()
-	app.Use(limiter.New())
+	app := fiber.New(fiber.Config{Prefork: true})
+	app.Use(limiter.New(limiter.Config{
+		Max:        5,
+		Expiration: 10 * time.Second,
+	}))
 	app.Use(logger.New(logger.Config{
 		TimeFormat: "2006-01-02T15:04:05",
 		TimeZone:   "UTC",
 	}))
+	app.Use(recover.New())
 
 	// TODO: uncomment later for basic auth
 	// app.Use(basicauth.New(basicauth.Config{Users: auth}))
@@ -34,5 +40,8 @@ func main() {
 	app.Post("/newScore", handlers.NewScoreHandler(*database))
 	app.Get("/getScores", handlers.GetScoresHandler(*database)) // can be cached later
 	app.Delete("/deleteAllScores", handlers.DeleteAllHandler(*database))
+
+	app.Use(func(c *fiber.Ctx) error { return fiber.ErrNotFound })
+
 	log.Fatal(app.Listen(":" + port))
 }

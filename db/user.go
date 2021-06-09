@@ -11,10 +11,10 @@ import (
 type Member string
 
 type User struct {
-	Name     string `json:"name" binding:"required"`
-	DeviceID string `json:"uuid" binding:"required"`
-	Score    uint64 `json:"score" binding:"required"`
-	Rank     int64  `json:"rank"`
+	Name     string `json:"name,omitempty"`
+	DeviceID string `json:"uuid,omitempty"`
+	Score    uint64 `json:"score,omitempty"`
+	Rank     int64  `json:"rank,omitempty"`
 }
 
 func GenerateMember(user *User) Member {
@@ -31,36 +31,30 @@ func (member Member) ExtractName() string {
 
 func (db *Database) SaveUser(ctx context.Context, user *User) error {
 	member := string(GenerateMember(user))
+
+	// if the member has an existing higher score -> abort
+	// TODO: remove this check once ZADD with GT is added to go-redis
+	existingScore, err := db.Client.ZScore(ctx, leaderboardKey, member).Result()
+	if err != nil && err != redis.Nil {
+		return err
+	}
+	if uint64(existingScore) >= user.Score {
+		*user = User{Rank: -1} // convention that score wasn't updated
+		return nil
+	}
+
 	record := &redis.Z{
 		Score:  float64(user.Score),
 		Member: member,
 	}
 	pipe := db.Client.TxPipeline()
-	// TODO: only update if greater
 	pipe.ZAdd(ctx, leaderboardKey, record)
 	rank := pipe.ZRevRank(ctx, leaderboardKey, member)
-	_, err := pipe.Exec(ctx)
+	_, err = pipe.Exec(ctx)
 	if err != nil {
 		return err
 	}
-	user.Rank = rank.Val() + 1
+	// saves space on returned message
+	*user = User{Rank: rank.Val() + 1}
 	return nil
 }
-
-//func (db *Database) GetUser(ctx context.Context, username string) (*User, error) {
-//	pipe := db.Client.TxPipeline()
-//	score := pipe.ZScore(ctx, leaderboardKey, username)
-//	rank := pipe.ZRevRank(ctx, leaderboardKey, username)
-//	_, err := pipe.Exec(ctx)
-//	if err != nil {
-//		return nil, err
-//	}
-//	if score == nil {
-//		return nil, ErrNil
-//	}
-//	return &User{
-//		Name:  username,
-//		Score: uint64(score.Val()),
-//		Rank:  rank.Val() + 1,
-//	}, nil
-//}
