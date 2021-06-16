@@ -23,7 +23,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to connect to redis: %v", err)
 	}
-	app := fiber.New(fiber.Config{Prefork: true})
+	app := fiber.New()
 	app.Use(limiter.New(limiter.Config{
 		Max:        5,
 		Expiration: 10 * time.Second,

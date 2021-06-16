@@ -19,14 +19,14 @@ type User struct {
 
 func GenerateMember(user *User) Member {
 	var sb strings.Builder
-	sb.Grow(32)
+	sb.Grow(50)
 	sb.WriteString(user.DeviceID)
 	sb.WriteString(user.Name)
 	return Member(sb.String())
 }
 
 func (member Member) ExtractName() string {
-	return string(member[32:])
+	return string(member[36:])
 }
 
 func (db *Database) SaveUser(ctx context.Context, user *User) error {
