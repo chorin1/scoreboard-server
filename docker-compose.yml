@@ -13,5 +13,9 @@ services:
     environment:
       REDIS_URL: redis:6379
       HOST_PORT: 8080
+      HTTP_USER: admin
+      HTTP_PASS: admin
+    restart: unless-stopped
   redis:
     image: redis:alpine
+    restart: unless-stopped

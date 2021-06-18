@@ -4,6 +4,7 @@ import (
 	"github.com/chorin1/scoreboard-server/db"
 	"github.com/chorin1/scoreboard-server/handlers"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/basicauth"
 	"github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
@@ -34,8 +35,7 @@ func main() {
 	}))
 	app.Use(recover.New())
 
-	// TODO: uncomment later for basic auth
-	// app.Use(basicauth.New(basicauth.Config{Users: auth}))
+	app.Use(basicauth.New(basicauth.Config{Users: auth}))
 
 	app.Post("/newScore", handlers.NewScoreHandler(*database))
 	app.Get("/getScores", handlers.GetScoresHandler(*database)) // can be cached later
