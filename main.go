@@ -43,5 +43,6 @@ func main() {
 
 	app.Use(func(c *fiber.Ctx) error { return fiber.ErrNotFound })
 
-	log.Fatal(app.Listen(":" + port))
+	log.Fatal(app.ListenTLS(":"+port, "./cert.pem", "./cert.key"))
+	//log.Fatal(app.Listen(":" + port))
 }
