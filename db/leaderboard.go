@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	leaderboardKey           = "leaderboard"
+	LeaderboardKey           = "leaderboard"
 	maxEntries               = 10000
 	cleanBottomRanksInterval = 1 * time.Minute
 )
@@ -18,7 +18,7 @@ type Leaderboard struct {
 }
 
 func (db *Database) GetTop10(ctx context.Context) (*Leaderboard, error) {
-	records, err := db.Client.ZRevRangeWithScores(ctx, leaderboardKey, 0, 9).Result()
+	records, err := db.Client.ZRevRangeWithScores(ctx, LeaderboardKey, 0, 9).Result()
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +42,7 @@ func (db *Database) GetTop10(ctx context.Context) (*Leaderboard, error) {
 
 func (db *Database) removeBottomRanks() {
 	for range time.NewTicker(cleanBottomRanksInterval).C {
-		card, err := db.Client.ZCard(context.Background(), leaderboardKey).Result()
+		card, err := db.Client.ZCard(context.Background(), LeaderboardKey).Result()
 		if err != nil {
 			log.Printf("error cleaning records: %v\n", err)
 			return
@@ -50,7 +50,7 @@ func (db *Database) removeBottomRanks() {
 		if card > maxEntries {
 			// removes the bottom entries
 			removed, err := db.Client.
-				ZRemRangeByRank(context.Background(), leaderboardKey, 0, card-maxEntries-1).
+				ZRemRangeByRank(context.Background(), LeaderboardKey, 0, card-maxEntries-1).
 				Result()
 			if err != nil {
 				log.Printf("error cleaning records: %v\n", err)
@@ -62,7 +62,7 @@ func (db *Database) removeBottomRanks() {
 }
 
 func (db *Database) DeleteAllUsers() error {
-	_, err := db.Client.Del(context.Background(), leaderboardKey).Result()
+	_, err := db.Client.Del(context.Background(), LeaderboardKey).Result()
 	if err != nil {
 		return err
 	}

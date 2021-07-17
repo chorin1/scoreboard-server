@@ -10,6 +10,8 @@ import (
 // uuid + name
 type Member string
 
+const ScoreNotUpdated = int64(-1) // convention that score wasn't updated
+
 type User struct {
 	Name     string `json:"name,omitempty"`
 	DeviceID string `json:"uuid,omitempty"`
@@ -17,7 +19,7 @@ type User struct {
 	Rank     int64  `json:"rank,omitempty"`
 }
 
-func GenerateMember(user *User) Member {
+func generateMember(user *User) Member {
 	var sb strings.Builder
 	sb.Grow(50)
 	sb.WriteString(user.DeviceID)
@@ -30,16 +32,16 @@ func (member Member) ExtractName() string {
 }
 
 func (db *Database) SaveUser(ctx context.Context, user *User) error {
-	member := string(GenerateMember(user))
+	member := string(generateMember(user))
 
 	// if the member has an existing higher score -> abort
 	// TODO: remove this check once ZADD with GT is added to go-redis
-	existingScore, err := db.Client.ZScore(ctx, leaderboardKey, member).Result()
+	existingScore, err := db.Client.ZScore(ctx, LeaderboardKey, member).Result()
 	if err != nil && err != redis.Nil {
 		return err
 	}
 	if uint64(existingScore) >= user.Score {
-		*user = User{Rank: -1} // convention that score wasn't updated
+		*user = User{Rank: ScoreNotUpdated}
 		return nil
 	}
 
@@ -48,8 +50,8 @@ func (db *Database) SaveUser(ctx context.Context, user *User) error {
 		Member: member,
 	}
 	pipe := db.Client.TxPipeline()
-	pipe.ZAdd(ctx, leaderboardKey, record)
-	rank := pipe.ZRevRank(ctx, leaderboardKey, member)
+	pipe.ZAdd(ctx, LeaderboardKey, record)
+	rank := pipe.ZRevRank(ctx, LeaderboardKey, member)
 	_, err = pipe.Exec(ctx)
 	if err != nil {
 		return err
