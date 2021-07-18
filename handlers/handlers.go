@@ -22,11 +22,7 @@ func validateUser(user *db.User) bool {
 		return false
 	}
 	_, err := uuid.Parse(user.DeviceID)
-	if err != nil {
-		return false
-	}
-
-	return true
+	return err == nil
 }
 
 func NewScoreHandler(database db.Database) fiber.Handler {

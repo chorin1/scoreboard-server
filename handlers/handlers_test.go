@@ -115,6 +115,9 @@ func TestNewHighScoreHandler(t *testing.T) {
 
 			req := newUserRequest(t, tt.user)
 			resp, err := app.Test(req)
+			if err != nil {
+				t.Fail()
+			}
 
 			if resp.StatusCode != tt.expectedStatusCode {
 				t.Errorf("Expcted status code %v but got %v", tt.expectedStatusCode, resp.StatusCode)
@@ -144,6 +147,7 @@ func TestGetScoresHandler(t *testing.T) {
 	app := fiber.New()
 	app.Get("/", handler)
 
+	// generates score mock data
 	var scoreRecords []redis.Z
 	for i := 0; i < 10; i++ {
 		scoreRecords = append(scoreRecords, redis.Z{Score: float64(5000 + i), Member: member + strconv.Itoa(i)})
